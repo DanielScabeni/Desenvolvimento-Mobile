@@ -1,9 +1,9 @@
 
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:gerenciar_tarefas/model/tarefa.dart';
 import 'package:intl/intl.dart';
+
+import '../model/tarefa.dart';
 
 class ConteudoFormDialog extends StatefulWidget{
   final Tarefa? tarefaAtual;
@@ -16,9 +16,9 @@ class ConteudoFormDialog extends StatefulWidget{
 
 class ConteudoFormDialogState extends State<ConteudoFormDialog>{
 
-  final formkey = GlobalKey<FormState>();
+  final formKey = GlobalKey<FormState>();
   final descricaoController = TextEditingController();
-  final prazoContorller = TextEditingController();
+  final prazoController = TextEditingController();
   final _prazoFormatado = DateFormat('dd/MM/yyyy');
 
   @override
@@ -26,14 +26,14 @@ class ConteudoFormDialogState extends State<ConteudoFormDialog>{
     super.initState();
     if (widget.tarefaAtual != null){
       descricaoController.text = widget.tarefaAtual!.descricao;
-      prazoContorller.text = widget.tarefaAtual!.prazoFormatado;
+      prazoController.text = widget.tarefaAtual!.prazoFormatado;
     }
   }
 
   @override
   Widget build(BuildContext context){
     return Form(
-      key: formkey,
+      key: formKey,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -48,7 +48,7 @@ class ConteudoFormDialogState extends State<ConteudoFormDialog>{
                 },
               ),
             TextFormField(
-              controller: prazoContorller,
+              controller: prazoController,
               decoration: InputDecoration(
                 labelText: 'Prazo',
                 prefixIcon: IconButton(
@@ -57,7 +57,7 @@ class ConteudoFormDialogState extends State<ConteudoFormDialog>{
                 ),
                 suffixIcon: IconButton(
                   icon: Icon(Icons.clear),
-                  onPressed: () => prazoContorller.clear(),
+                  onPressed: () => prazoController.clear(),
                 ),
               ),
               readOnly: true,
@@ -67,11 +67,12 @@ class ConteudoFormDialogState extends State<ConteudoFormDialog>{
         )
     );
   }
-  void _mostraCalendario(){
-    final dataFormatada = prazoContorller.text;
+  
+  void _mostraCalendario() {
+    final dataFormatada = prazoController.text;
     var data = DateTime.now();
 
-    if(dataFormatada.isNotEmpty) {
+    if(dataFormatada.isNotEmpty){
       data = _prazoFormatado.parse(dataFormatada);
     }
     showDatePicker(
@@ -82,18 +83,18 @@ class ConteudoFormDialogState extends State<ConteudoFormDialog>{
     ).then((DateTime? dataSelecionada) {
       if (dataSelecionada != null){
         setState(() {
-          prazoContorller.text = _prazoFormatado.format(dataSelecionada);
+          prazoController.text = _prazoFormatado.format(dataSelecionada);
         });
       }
     });
   }
 
-  bool dadosValidados() => formkey.currentState?.validate() == true;
+  bool dadosValidados() => formKey.currentState?.validate() == true;
 
   Tarefa get novaTarefa => Tarefa(
       id: widget.tarefaAtual?.id ?? 0,
       descricao: descricaoController.text,
-      prazo: prazoContorller.text.isEmpty ? null : _prazoFormatado.parse(prazoContorller.text),
+      prazo: prazoController.text.isEmpty ? null :
+      _prazoFormatado.parse(prazoController.text),
   );
-
 }

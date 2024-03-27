@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gerenciar_tarefas/pages/filtro_page.dart';
 import 'package:gerenciar_tarefas/pages/lista_page_tarefas.dart';
 
 void main() {
@@ -8,19 +9,21 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // this widget is the root of your application
+  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
+      title: 'Gerenciador Tarefas',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.black87),
-        primaryColor: Colors.orangeAccent,
+        primarySwatch: Colors.orange,
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      home: ListaTarefaPage()
-
+      home: ListaTarefaPage(),
+      routes: {
+        FiltroPage.ROUTE_NAME: (BuildContext context) => FiltroPage(),
+      },
     );
   }
 }

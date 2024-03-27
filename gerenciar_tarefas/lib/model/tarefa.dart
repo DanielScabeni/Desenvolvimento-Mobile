@@ -17,6 +17,5 @@ class Tarefa{
       return '';
     }
     return DateFormat('dd/MM/yyyy').format(prazo!);
-
   }
 }
