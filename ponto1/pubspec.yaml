@@ -1,4 +1,4 @@
-name: gerenciar_tarefas
+name: ponto1
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -37,7 +37,6 @@ dependencies:
   cupertino_icons: ^1.0.6
   intl: ^0.19.0
   shared_preferences: ^2.2.2
-  sqflite: ^2.3.3
 
 dev_dependencies:
   flutter_test:

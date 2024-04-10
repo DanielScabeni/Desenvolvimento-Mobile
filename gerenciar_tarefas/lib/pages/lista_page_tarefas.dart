@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:gerenciar_tarefas/dao/tarefa_dao.dart';
 import 'package:gerenciar_tarefas/model/tarefa.dart';
 import 'package:gerenciar_tarefas/pages/filtro_page.dart';
 import 'package:gerenciar_tarefas/widgets/conteudo_form_dialog.dart';
@@ -13,10 +14,16 @@ class ListaTarefaPage extends StatefulWidget{
 class _ListaTarefaPageState extends State<ListaTarefaPage>{
 
   final _tarefas = <Tarefa> [];
-  var _ultimoId = 0;
+  final _dao = TarefaDao();
 
   static const ACAO_EDITAR = 'editar';
   static const ACAO_EXCLUIR = 'excluir';
+
+  @override
+  void initstate(){
+    super.initState();
+    _atualizarLista();
+  }
 
   @override
   Widget build(BuildContext context){
@@ -64,9 +71,9 @@ class _ListaTarefaPageState extends State<ListaTarefaPage>{
             itemBuilder: (BuildContext context) => criarItensMenuPopUp(),
           onSelected: (String valorSelecionado){
               if (valorSelecionado == ACAO_EDITAR){
-                _abrirForm(tarefaAtual: tarefa, indice: index);
+                _abrirForm(tarefaAtual: tarefa);
               }else{
-                _excluir(index);
+                _excluir(tarefa);
               }
           },
         );
@@ -80,14 +87,14 @@ class _ListaTarefaPageState extends State<ListaTarefaPage>{
     final navigator = Navigator.of(context);
     navigator.pushNamed(FiltroPage.ROUTE_NAME).then((alterouValor) {
       if(alterouValor == true){
-
+        // implementação de filtro
       }
     });
   }
 
   List<PopupMenuEntry<String>> criarItensMenuPopUp(){
     return [
-      PopupMenuItem(
+      const PopupMenuItem(
           value: ACAO_EDITAR,
           child: Row(
             children: [
@@ -114,7 +121,7 @@ class _ListaTarefaPageState extends State<ListaTarefaPage>{
     ];
   }
 
-  Future _excluir(int indice){
+  Future _excluir(Tarefa tarefa){
     return showDialog(
         context: context,
         builder: (BuildContext context){
@@ -137,9 +144,14 @@ class _ListaTarefaPageState extends State<ListaTarefaPage>{
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop();
-                  setState(() {
-                    _tarefas.removeAt(indice);
-                    });
+                  if (tarefa.id == null){
+                    return;
+                  }
+                  _dao.remover(tarefa.id!).then((success) {
+                    if(success){
+                      _atualizarLista();
+                    }
+                  });
                   },
                 child: Text('Excluir'),
               )
@@ -147,9 +159,10 @@ class _ListaTarefaPageState extends State<ListaTarefaPage>{
           );
         }
     );
+
   }
 
-  void _abrirForm({Tarefa? tarefaAtual, int? indice}){
+  void _abrirForm({Tarefa? tarefaAtual}){
     final key = GlobalKey<ConteudoFormDialogState>();
     showDialog(
       context: context,
@@ -168,12 +181,11 @@ class _ListaTarefaPageState extends State<ListaTarefaPage>{
                   key.currentState != null){
                     setState(() {
                       final novaTarefa = key.currentState!.novaTarefa;
-                      if( indice == null){
-                        novaTarefa.id = ++ _ultimoId;
-                        _tarefas.add(novaTarefa);
-                      }else{
-                        _tarefas[indice] = novaTarefa;
-                      }
+                      _dao.salvar(novaTarefa).then((success) {
+                        if(success){
+                          _atualizarLista();
+                        }
+                      });
                     });
                     Navigator.of(context).pop();
                   }
@@ -184,5 +196,15 @@ class _ListaTarefaPageState extends State<ListaTarefaPage>{
         );
       }
     );
+  }
+
+  void _atualizarLista () async{
+    final tarefas = await _dao.Lista();
+    setState(() {
+      _tarefas.clear();
+      if(tarefas.isNotEmpty){
+        _tarefas.addAll(tarefas);
+      }
+    });
   }
 }
