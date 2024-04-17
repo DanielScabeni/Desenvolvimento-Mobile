@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:ponto1/model/ponto.dart';
+import 'package:ponto1/pages/lista_de_pontos.dart';
 import 'package:ponto1/widgets/conteudo_form_dialog.dart';
 
 class ListaPontoPage extends StatefulWidget{
@@ -25,6 +26,12 @@ class _ListaPontoPageState extends State<ListaPontoPage>{
         _navegarParaListaDePontos(); // Implementar esta função
       }
     });
+  }
+
+  void _navegarParaListaDePontos() {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (context) => ListaDePontosPage(),
+    ));
   }
 
   @override
@@ -170,14 +177,6 @@ class _ListaPontoPageState extends State<ListaPontoPage>{
     );
   }
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-      if (index == 0) {
-        _navegarParaListaDePontos(); // Implementar esta função
-      }
-    });
-  }
 
   void _abrirForm({Ponto? pontoAtual, int? indice}){
     final key = GlobalKey<ConteudoFormDialogState>();
