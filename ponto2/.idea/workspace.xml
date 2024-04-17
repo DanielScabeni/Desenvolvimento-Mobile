@@ -9,7 +9,9 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ad643c9c-2a08-4a58-9db9-bdacc3f0ae81" name="Changes" comment="" />
+    <list default="true" id="ad643c9c-2a08-4a58-9db9-bdacc3f0ae81" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/../ponto1/lib/model/ponto.dart" beforeDir="false" afterPath="$PROJECT_DIR$/../ponto1/lib/model/ponto.dart" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />

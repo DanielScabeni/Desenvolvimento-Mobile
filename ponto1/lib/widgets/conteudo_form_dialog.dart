@@ -62,10 +62,14 @@ class ConteudoFormDialogState extends State<ConteudoFormDialog>{
 
   Ponto get novoPonto {
     final agora = DateTime.now();
+    final descricao = descricaoController.text;
+    final horas = DateFormat('HH:mm:ss').format(agora);
+
     return Ponto(
       id: widget.pontoAtual?.id ?? 0,
-      descricao: descricaoController.text,
+      descricao: descricao,
       data: agora,
+      horasFormatadas: horas,
     );
   }
 }
