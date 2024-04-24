@@ -10,7 +10,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ad643c9c-2a08-4a58-9db9-bdacc3f0ae81" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/../ponto1/lib/model/ponto.dart" beforeDir="false" afterPath="$PROJECT_DIR$/../ponto1/lib/model/ponto.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../gerenciar_tarefas/lib/dao/tarefa_dao.dart" beforeDir="false" afterPath="$PROJECT_DIR$/../gerenciar_tarefas/lib/dao/tarefa_dao.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../gerenciar_tarefas/lib/database/data_base_provider.dart" beforeDir="false" afterPath="$PROJECT_DIR$/../gerenciar_tarefas/lib/database/data_base_provider.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../gerenciar_tarefas/lib/model/tarefa.dart" beforeDir="false" afterPath="$PROJECT_DIR$/../gerenciar_tarefas/lib/model/tarefa.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../gerenciar_tarefas/lib/pages/lista_page_tarefas.dart" beforeDir="false" afterPath="$PROJECT_DIR$/../gerenciar_tarefas/lib/pages/lista_page_tarefas.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

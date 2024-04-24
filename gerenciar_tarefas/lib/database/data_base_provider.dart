@@ -1,11 +1,10 @@
 
+import 'package:gerenciar_tarefas/model/tarefa.dart';
 import 'package:sqflite/sqflite.dart';
-
-import '../model/tarefa.dart';
 
 class DatabaseProvider{
   static const _dbName = 'cadastro_tarefas.db';
-  static const _dbVersion = 1;
+  static const _dbVersion = 2;
 
   DatabaseProvider._init();
   static final DatabaseProvider instance = DatabaseProvider._init();
@@ -31,24 +30,31 @@ class DatabaseProvider{
     );
   }
 
-  Future<void> _onCreate(Database db, int version) async{
+  Future<void> _onCreate(Database db, int version) async {
     await db.execute(
         '''
       CREATE TABLE ${Tarefa.nome_tabela} (
       ${Tarefa.campo_id} INTEGER PRIMARY KEY AUTOINCREMENT,
       ${Tarefa.campo_descricao} TEXT NOT NULL,
-      ${Tarefa.campo_prazo} TEXT 
+      ${Tarefa.campo_prazo} TEXT,
+      ${Tarefa.campo_finalizado} INTEGER NOT NULL DEFAULT 0 
       );
       '''
     );
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async{
-
+switch(oldVersion){
+      case 1:
+        await db.execute('''
+        ALTER TABLE ${Tarefa.nome_tabela}
+        ADD ${Tarefa.campo_finalizado} INTEGER NOT NULL DEFAULT 0
+        ''');
+    }
   }
 
   Future<void> close() async{
-    if (_database != null){
+    if(_database != null){
       await _database!.close();
     }
   }
