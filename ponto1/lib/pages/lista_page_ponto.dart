@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ponto1/model/ponto.dart';
 import 'package:ponto1/pages/lista_de_pontos.dart';
 import 'package:ponto1/widgets/conteudo_form_dialog.dart';
@@ -61,10 +60,13 @@ class _ListaPontoPageState extends State<ListaPontoPage> {
     final pontoDao = PontoDao();
     final pontos = await pontoDao.listar();
     setState(() {
+      _pontos.clear();
       _pontos.addAll(pontos);
       _ultimoId = _pontos.isNotEmpty ? _pontos.last.id : 0;
     });
+    print('Pontos carregados: $_pontos');
   }
+
 
   Future<void> _carregarConfiguracoes() async {
     final prefs = await SharedPreferences.getInstance();

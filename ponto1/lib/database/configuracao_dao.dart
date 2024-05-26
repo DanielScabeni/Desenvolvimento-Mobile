@@ -1,4 +1,3 @@
-import 'package:sqflite/sqflite.dart';
 import 'package:ponto1/database/data_base_provider.dart';
 import 'package:ponto1/model/configuracao.dart';
 

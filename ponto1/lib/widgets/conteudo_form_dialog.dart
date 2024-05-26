@@ -1,7 +1,6 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../model/ponto.dart';
+import 'package:ponto1/model/ponto.dart';
 
 class ConteudoFormDialog extends StatefulWidget {
   final Ponto? pontoAtual;

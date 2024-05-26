@@ -28,19 +28,16 @@ class DatabaseProvider {
   }
 
   Future<void> _onCreate(Database db, int version) async {
-    await db.execute(
-        '''
+    await db.execute('''
       CREATE TABLE pontos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         dia_de_trabalho TEXT NOT NULL,
         data TEXT NOT NULL,
         hora TEXT NOT NULL
       );
-      '''
-    );
+    ''');
 
-    await db.execute(
-        '''
+    await db.execute('''
       CREATE TABLE configuracoes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         hora_inicio1 TEXT NOT NULL,
@@ -48,8 +45,8 @@ class DatabaseProvider {
         hora_inicio2 TEXT NOT NULL,
         hora_fim2 TEXT NOT NULL
       );
-      '''
-    );
+    ''');
+    print('Banco de dados criado com sucesso!');
   }
 
   Future<void> close() async {
@@ -62,5 +59,7 @@ class DatabaseProvider {
     String databasePath = await getDatabasesPath();
     String dbPath = join(databasePath, _dbName);
     await databaseFactory.deleteDatabase(dbPath);
+    print('Banco de dados deletado com sucesso!');
   }
 }
+
