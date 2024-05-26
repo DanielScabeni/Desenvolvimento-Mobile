@@ -89,10 +89,9 @@ class _ListaPontoPageState extends State<ListaPontoPage> {
 
   List<Ponto> _filtrarPontosDoDia(DateTime data) {
     return _pontos.where((ponto) {
-      return ponto.data != null &&
-          ponto.data!.year == data.year &&
-          ponto.data!.month == data.month &&
-          ponto.data!.day == data.day;
+      return ponto.diaDeTrabalho!.year == data.year &&
+          ponto.diaDeTrabalho!.month == data.month &&
+          ponto.diaDeTrabalho!.day == data.day;
     }).toList();
   }
 
@@ -267,19 +266,22 @@ class _ListaPontoPageState extends State<ListaPontoPage> {
         widgets.add(_criarPrevisaoItem(pontosDoDia[0].data!.add(_duracaoTurno1).add(_intervalo), 'Previsão de retorno do intervalo', Icons.login, Colors.green));
         widgets.add(_criarInfo('Turno 2 de ${_formatarDuracao(_duracaoTurno2)}'));
         widgets.add(_criarPrevisaoItem(pontosDoDia[0].data!.add(_duracaoTurno1).add(_intervalo).add(_duracaoTurno2), 'Previsão de saída (do dia seguinte)', Icons.logout, Colors.red));
-        widgets.add(_criarInfo('Previsão total de trabalho: ${_formatarDuracao(_duracaoTurno1 + _intervalo + _duracaoTurno2)}'));
+        widgets.add(_criarInfo('Previsão total de trabalho: ${_formatarDuracao(_duracaoTurno1 + _duracaoTurno2)}'));
       } else if (pontosDoDia.length == 2) {
+        final saldoTurno2 = _duracaoTurno1 - duracaoTurno1;
+        final duracaoTurno2Ajustada = _duracaoTurno2 + saldoTurno2;
         widgets.add(_criarInfo('Intervalo de ${_formatarDuracao(_intervalo)}'));
         widgets.add(_criarPrevisaoItem(pontosDoDia[1].data!.add(_intervalo), 'Previsão de retorno do intervalo', Icons.login, Colors.green));
-        widgets.add(_criarInfo('Turno 2 de ${_formatarDuracao(_duracaoTurno2)}'));
-        widgets.add(_criarPrevisaoItem(pontosDoDia[1].data!.add(_intervalo).add(_duracaoTurno2), 'Previsão de saída (do dia seguinte)', Icons.logout, Colors.red));
-        widgets.add(_criarInfo('Previsão total de trabalho: ${_formatarDuracao(_duracaoTurno1 + _intervalo + _duracaoTurno2)}'));
+        widgets.add(_criarInfo('Turno 2 de ${_formatarDuracao(duracaoTurno2Ajustada)}'));
+        widgets.add(_criarPrevisaoItem(pontosDoDia[1].data!.add(_intervalo).add(duracaoTurno2Ajustada), 'Previsão de saída (do dia seguinte)', Icons.logout, Colors.red));
+        widgets.add(_criarInfo('Previsão total de trabalho: ${_formatarDuracao(_duracaoTurno1 + _duracaoTurno2)}'));
+        widgets.add(_criarInfo('Total trabalhado: ${_formatarDuracao(duracaoTurno1)}'));
       } else if (pontosDoDia.length == 3) {
         final saldoTurno2 = _duracaoTurno1 - duracaoTurno1;
         final duracaoTurno2Ajustada = _duracaoTurno2 + saldoTurno2;
         widgets.add(_criarInfo('Turno 2 de ${_formatarDuracao(duracaoTurno2Ajustada)}'));
         widgets.add(_criarPrevisaoItem(pontosDoDia[2].data!.add(duracaoTurno2Ajustada), 'Previsão de saída (do dia seguinte)', Icons.logout, Colors.red));
-        widgets.add(_criarInfo('Previsão total de trabalho: ${_formatarDuracao(_duracaoTurno1 + _intervalo + _duracaoTurno2)}'));
+        widgets.add(_criarInfo('Previsão total de trabalho: ${_formatarDuracao(_duracaoTurno1 + _duracaoTurno2)}'));
         widgets.add(_criarInfo('Total trabalhado: ${_formatarDuracao(duracaoTurno1)}'));
       } else {
         widgets.add(_criarPrevisoes(pontosDoDia));

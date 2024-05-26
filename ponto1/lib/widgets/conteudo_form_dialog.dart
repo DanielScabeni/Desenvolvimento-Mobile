@@ -19,11 +19,13 @@ class ConteudoFormDialogState extends State<ConteudoFormDialog> {
   late DateTime dataHoraAtual;
   late String dataFormatada;
   late String horaFormatada;
+  late DateTime diaDeTrabalho;
 
   @override
   void initState() {
     super.initState();
     dataHoraAtual = widget.pontoAtual?.data ?? DateTime.now();
+    diaDeTrabalho = widget.pontoAtual?.diaDeTrabalho ?? DateTime.now();
     dataFormatada = DateFormat('dd/MM/yyyy').format(dataHoraAtual);
     horaFormatada = DateFormat('HH:mm').format(dataHoraAtual);
   }
@@ -35,6 +37,26 @@ class ConteudoFormDialogState extends State<ConteudoFormDialog> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          TextFormField(
+            initialValue: DateFormat('dd/MM/yyyy').format(diaDeTrabalho),
+            decoration: InputDecoration(labelText: 'Dia de Trabalho'),
+            readOnly: true,
+            onTap: () async {
+              DateTime? novaData = await showDatePicker(
+                context: context,
+                initialDate: diaDeTrabalho,
+                firstDate: DateTime(2000),
+                lastDate: DateTime(2100),
+              );
+              if (novaData != null) {
+                setState(() {
+                  diaDeTrabalho = novaData;
+                });
+              }
+            },
+          ),
+          SizedBox(height: 16),
+          Text('Ponto', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           if (widget.podeEditar)
             TextFormField(
               initialValue: dataFormatada,
@@ -114,6 +136,7 @@ class ConteudoFormDialogState extends State<ConteudoFormDialog> {
       descricao: '',
       data: dataHoraAtual,
       horas: [horaFormatada],
+      diaDeTrabalho: diaDeTrabalho,
     );
   }
 }

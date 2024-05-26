@@ -1,52 +1,46 @@
 import 'dart:convert';
-import 'package:intl/intl.dart';
 
 class Ponto {
-  static const campo_id = '_id';
-  static const campo_descricao = 'descricao';
-  static const campo_data = 'data';
-  static const campo_horas = 'horas';
-
   int id;
   String descricao;
   DateTime? data;
+  DateTime? diaDeTrabalho;
   List<String> horas;
 
-  Ponto({required this.id, required this.descricao, this.data, required this.horas});
-
-  String get dataFormatada {
-    if (data == null) {
-      return '';
-    }
-    return DateFormat('dd/MM/yyyy').format(data!);
-  }
-
-  String get horasFormatadas {
-    if (horas.isEmpty) {
-      return '--:--  --:--  --:--  --:--';
-    }
-    return horas.join('  ') + '  ' + '--:--  ' * (4 - horas.length);
-  }
+  Ponto({
+    required this.id,
+    required this.descricao,
+    required this.data,
+    required this.diaDeTrabalho,
+    required this.horas,
+  });
 
   Map<String, dynamic> toMap() {
     return {
-      campo_id: id,
-      campo_descricao: descricao,
-      campo_data: data?.toIso8601String(),
-      campo_horas: horas,
+      'id': id,
+      'descricao': descricao,
+      'data': data?.toIso8601String(),
+      'diaDeTrabalho': diaDeTrabalho?.toIso8601String(),
+      'horas': horas,
     };
   }
 
   factory Ponto.fromMap(Map<String, dynamic> map) {
     return Ponto(
-      id: map[campo_id],
-      descricao: map[campo_descricao],
-      data: map[campo_data] != null ? DateTime.parse(map[campo_data]) : null,
-      horas: List<String>.from(map[campo_horas]),
+      id: map['id'],
+      descricao: map['descricao'],
+      data: map['data'] != null ? DateTime.parse(map['data']) : null,
+      diaDeTrabalho: map['diaDeTrabalho'] != null ? DateTime.parse(map['diaDeTrabalho']) : null,
+      horas: List<String>.from(map['horas']),
     );
   }
 
-  String toJson() => json.encode(toMap());
-
-  factory Ponto.fromJson(String source) => Ponto.fromMap(json.decode(source));
+  String get horasFormatadas {
+    final buffer = StringBuffer();
+    for (var hora in horas) {
+      if (buffer.isNotEmpty) buffer.write(' ');
+      buffer.write(hora);
+    }
+    return buffer.toString();
+  }
 }
