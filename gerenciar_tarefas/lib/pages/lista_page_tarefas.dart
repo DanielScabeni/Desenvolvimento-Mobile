@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:gerenciar_tarefas/dao/tarefa_dao.dart';
 import 'package:gerenciar_tarefas/model/tarefa.dart';
+import 'package:gerenciar_tarefas/pages/datalhe_tarefa_page.dart';
 import 'package:gerenciar_tarefas/pages/filtro_page.dart';
 import 'package:gerenciar_tarefas/widgets/conteudo_form_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -21,6 +22,7 @@ class _ListaTarefaPageState extends State<ListaTarefaPage>{
 
   static const ACAO_EDITAR = 'editar';
   static const ACAO_EXCLUIR = 'excluir';
+static const ACAO_VISUALIZAR = 'visualizar';
 
   @override
   void initState(){
@@ -36,7 +38,7 @@ setState(() {
     final prefs = await SharedPreferences.getInstance();
     final _campoOrdenacao = prefs.getString(FiltroPage.CHAVE_CAMPO_ORDENACAO) ?? Tarefa.campo_id;
     final _usarOrdemDecrescente = prefs.getBool(FiltroPage.CHAVE_ORDENAR_DECRESCENTE) == true;
-    final _filtroDescricao = prefs.getString(FiltroPage.CHAVE_FILTRO_DESCRICAO) ?? '';
+    final  _filtroDescricao = prefs.getString(FiltroPage.CHAVE_FILTRO_DESCRICAO) ?? '';
 
     final tarefas = await _dao.Lista(
       filtro: _filtroDescricao,
@@ -143,8 +145,11 @@ child: CircularProgressIndicator(),
           onSelected: (String valorSelecionado){
               if (valorSelecionado == ACAO_EDITAR){
                 _abrirForm(tarefaAtual: tarefa);
-              }else{
+              }else if (valorSelecionado == ACAO_EXCLUIR){
                 _excluir(tarefa);
+              }else{
+                Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => DetalheTarefaPage(tarefa: tarefa)));
               }
           },
         );
@@ -166,10 +171,22 @@ child: CircularProgressIndicator(),
   List<PopupMenuEntry<String>> criarItensMenuPopUp(){
     return [
       const PopupMenuItem(
-          value: ACAO_EDITAR,
+          value: ACAO_VISUALIZAR,
           child: Row(
             children: [
-              Icon(Icons.edit, color: Colors.blueGrey),
+              Icon(Icons.info, color: Colors.blue),
+              Padding(
+                padding: EdgeInsets.only(left: 10),
+                child: Text('Visualizar'),
+              )
+            ],
+          )
+      ),
+       const PopupMenuItem(
+        value: ACAO_EDITAR,
+          child: Row(
+            children: [
+              Icon(Icons.edit, color: Colors.black),
               Padding(
                 padding: EdgeInsets.only(left: 10),
                 child: Text('Editar'),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ponto1/pages/lista_page_ponto.dart';
+import 'package:ponto1/pages/configuracoes_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -32,7 +33,9 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: ListaPontoPage(),
-      routes: const {},
+      routes: {
+        '/configuracoes': (context) => ConfiguracoesPage(),
+      },
     );
   }
 }

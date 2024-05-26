@@ -1,41 +1,134 @@
-
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'package:intl/intl.dart';
 import 'package:ponto1/model/ponto.dart';
 import 'package:ponto1/pages/lista_de_pontos.dart';
 import 'package:ponto1/widgets/conteudo_form_dialog.dart';
+import 'package:ponto1/pages/configuracoes_page.dart';
 
-class ListaPontoPage extends StatefulWidget{
-
+class ListaPontoPage extends StatefulWidget {
   @override
   _ListaPontoPageState createState() => _ListaPontoPageState();
 }
 
-class _ListaPontoPageState extends State<ListaPontoPage>{
-
+class _ListaPontoPageState extends State<ListaPontoPage> {
   int _selectedIndex = 0;
-  final _pontos = <Ponto> [];
+  final _pontos = <Ponto>[];
   var _ultimoId = 0;
+  DateTime _dataSelecionada = DateTime.now();
 
-  static const ACAO_EDITAR = 'editar';
-  static const ACAO_EXCLUIR = 'excluir';
+  String _horaInicio1 = '';
+  String _horaFim1 = '';
+  String _horaInicio2 = '';
+  String _horaFim2 = '';
+  Duration _duracaoTurno1 = Duration.zero;
+  Duration _duracaoTurno2 = Duration.zero;
+  Duration _intervalo = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarPontos();
+    _carregarConfiguracoes();
+  }
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
       if (index == 0) {
-        _navegarParaListaDePontos(); // Implementar esta função
+        _navegarParaListaDePontos();
+      } else if (index == 2) {
+        _navegarParaConfiguracoes();
       }
     });
   }
 
   void _navegarParaListaDePontos() {
     Navigator.of(context).push(MaterialPageRoute(
-      builder: (context) => ListaDePontosPage(),
+      builder: (context) => ListaDePontosPage(pontos: _pontos),
     ));
   }
 
+  void _navegarParaConfiguracoes() {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (context) => ConfiguracoesPage(),
+    ));
+  }
+
+  Future<void> _carregarPontos() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? pontosJson = prefs.getString('pontos');
+    if (pontosJson != null) {
+      final List decoded = json.decode(pontosJson);
+      setState(() {
+        _pontos.addAll(decoded.map((p) => Ponto.fromMap(p)).toList());
+        _ultimoId = _pontos.isNotEmpty ? _pontos.last.id : 0;
+      });
+    }
+  }
+
+  Future<void> _carregarConfiguracoes() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _horaInicio1 = prefs.getString('horaInicio1') ?? '08:00';
+      _horaFim1 = prefs.getString('horaFim1') ?? '12:00';
+      _horaInicio2 = prefs.getString('horaInicio2') ?? '13:00';
+      _horaFim2 = prefs.getString('horaFim2') ?? '17:00';
+      _duracaoTurno1 = _calcularDuracao(_horaInicio1, _horaFim1);
+      _duracaoTurno2 = _calcularDuracao(_horaInicio2, _horaFim2);
+      _intervalo = _calcularDuracao(_horaFim1, _horaInicio2);
+    });
+  }
+
+  Future<void> _salvarPontos() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String pontosJson = json.encode(_pontos.map((p) => p.toMap()).toList());
+    await prefs.setString('pontos', pontosJson);
+  }
+
+  List<Ponto> _filtrarPontosDoDia(DateTime data) {
+    return _pontos.where((ponto) {
+      return ponto.data != null &&
+          ponto.data!.year == data.year &&
+          ponto.data!.month == data.month &&
+          ponto.data!.day == data.day;
+    }).toList();
+  }
+
+  void _alterarDataSelecionada(int dias) {
+    setState(() {
+      _dataSelecionada = _dataSelecionada.add(Duration(days: dias));
+    });
+  }
+
+  Duration _calcularDuracaoTurno(List<Ponto> pontos) {
+    if (pontos.length < 2) return Duration.zero;
+    return pontos.last.data!.difference(pontos.first.data!);
+  }
+
+  String _formatarDuracao(Duration duracao) {
+    final horas = duracao.inHours;
+    final minutos = duracao.inMinutes % 60;
+    return '${horas.toString().padLeft(2, '0')}h ${minutos.toString().padLeft(2, '0')}m';
+  }
+
+  String _calcularSaldoTurno(Duration duracaoTurno, Duration duracaoEsperada) {
+    final saldo = duracaoTurno - duracaoEsperada;
+    final prefix = saldo.isNegative ? '-' : '+';
+    final saldoFormatado = _formatarDuracao(saldo.abs());
+    return '$prefix$saldoFormatado';
+  }
+
   @override
-  Widget build(BuildContext context){
+  Widget build(BuildContext context) {
+    final pontosDoDia = _filtrarPontosDoDia(_dataSelecionada);
+    final duracaoTurno1 = pontosDoDia.length >= 2 ? pontosDoDia[1].data!.difference(pontosDoDia[0].data!) : Duration.zero;
+    final saldoTurno1 = _calcularSaldoTurno(duracaoTurno1, _duracaoTurno1);
+    final duracaoTurno2 = pontosDoDia.length >= 4 ? pontosDoDia[3].data!.difference(pontosDoDia[2].data!) : Duration.zero;
+    final duracaoTotal = duracaoTurno1 + duracaoTurno2;
+    final saldoTotal = _calcularSaldoTurno(duracaoTotal, _duracaoTurno1 + _duracaoTurno2);
+
     return Scaffold(
       appBar: _criarAppBar(context),
       bottomNavigationBar: BottomNavigationBar(
@@ -63,156 +156,344 @@ class _ListaPontoPageState extends State<ListaPontoPage>{
         tooltip: 'Novo Ponto',
         child: const Icon(Icons.add),
       ),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          setState(() {});
+        },
+        child: Column(
+          children: [
+            _criarCabecalho(),
+            _criarResumo(duracaoTotal, saldoTotal),
+            Expanded(child: _criarBody(pontosDoDia, duracaoTurno1)),
+          ],
+        ),
+      ),
     );
   }
 
   AppBar _criarAppBar(BuildContext context) {
     return AppBar(
       backgroundColor: Theme.of(context).primaryColor,
-      foregroundColor: Colors.white, // Isso define a cor do texto e ícones no AppBar para branco
+      foregroundColor: Colors.white,
       title: const Text('Ponto'),
       centerTitle: false,
       actions: [
         IconButton(
-          onPressed: _abrirForm, // A ação que era realizada pelo FAB agora é atribuída a este botão
-          icon: const Icon(Icons.add), // Ícone de '+'
+          onPressed: _abrirForm,
+          icon: const Icon(Icons.add),
         ),
       ],
     );
   }
 
-  Widget _criarBody(){
-    if(_pontos.isEmpty){
-      return const Center(
-        child: Text('Tudo certo por aqui',
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-      );
-    }
-    return ListView.separated(
-      itemBuilder: (BuildContext context, int index){
-        final ponto = _pontos[index];
-        return PopupMenuButton<String>(
-            child: ListTile(
-              title: Text('${ponto.id} - ${ponto.descricao}'),
-              subtitle: Text(ponto.dataFormatada == ''? 'Sem data definido' : 'Data - ${ponto.dataFormatada}'),
-            ),
-            itemBuilder: (BuildContext context) => criarItensMenuPopUp(),
-          onSelected: (String valorSelecionado){
-              if (valorSelecionado == ACAO_EDITAR){
-                _abrirForm(pontoAtual: ponto, indice: index);
-              }else{
-                _excluir(index);
-              }
-          },
-        );
-    }, 
-      separatorBuilder: (BuildContext context, int index) => const Divider(),
-      itemCount: _pontos.length,
-    );
-  }
-
-
-  List<PopupMenuEntry<String>> criarItensMenuPopUp(){
-    return [
-      const PopupMenuItem(
-          value: ACAO_EDITAR,
-          child: Row(
-            children: [
-              Icon(Icons.edit, color: Colors.blueGrey),
-              Padding(
-                padding: EdgeInsets.only(left: 10),
-                child: Text('Editar'),
-              )
-            ],
-          )
+  Widget _criarCabecalho() {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 16),
+      color: Theme.of(context).primaryColor,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            icon: Icon(Icons.arrow_left, color: Colors.white),
+            onPressed: () => _alterarDataSelecionada(-1),
+          ),
+          Text(
+            DateFormat('EEE, dd MMM yyyy').format(_dataSelecionada),
+            style: TextStyle(color: Colors.white, fontSize: 20),
+          ),
+          IconButton(
+            icon: Icon(Icons.arrow_right, color: Colors.white),
+            onPressed: () => _alterarDataSelecionada(1),
+          ),
+        ],
       ),
-      const PopupMenuItem(
-          value: ACAO_EXCLUIR,
-          child: Row(
-            children: [
-              Icon(Icons.cancel_outlined, color: Colors.red),
-              Padding(
-                padding: EdgeInsets.only(left: 10),
-                child: Text('Excluir'),
-              )
-            ],
-          )
-      )
-    ];
-  }
-
-  Future _excluir(int indice){
-    return showDialog(
-        context: context,
-        builder: (BuildContext context){
-          return  AlertDialog(
-            title: const Row(
-              children: [
-                Icon(Icons.warning_amber_outlined, color: Colors.orangeAccent),
-                Padding(
-                  padding: EdgeInsets.only(left: 10),
-                  child: Text('Atenção', style: TextStyle(color: Colors.red),),
-                )
-              ],
-            ),
-            content: const Text('Esse registro será excluido PERMANENTEMENTE!!'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancelar', style: TextStyle(color: Colors.green)),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  setState(() {
-                    _pontos.removeAt(indice);
-                    });
-                  },
-                child: Text('Excluir'),
-              )
-            ],
-          );
-        }
     );
   }
 
+  Widget _criarResumo(Duration duracaoTurno, String saldoTurno) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 8),
+      color: Theme.of(context).primaryColor,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          Column(
+            children: [
+              Text('Trab. no dia', style: TextStyle(color: Colors.white)),
+              Text(_formatarDuracao(duracaoTurno), style: TextStyle(color: Colors.white)),
+            ],
+          ),
+          Column(
+            children: [
+              Text('Saldo do dia', style: TextStyle(color: Colors.white)),
+              Text(saldoTurno, style: TextStyle(color: Colors.white)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
-  void _abrirForm({Ponto? pontoAtual, int? indice}){
-    final key = GlobalKey<ConteudoFormDialogState>();
+  Widget _criarBody(List<Ponto> pontosDoDia, Duration duracaoTurno1) {
+    if (pontosDoDia.isEmpty) {
+      return _criarPrevisoes([]);
+    }
+    List<Widget> widgets = [];
+
+    for (int i = 0; i < pontosDoDia.length; i++) {
+      final ponto = pontosDoDia[i];
+      final isEntrada = i % 2 == 0;
+
+      widgets.add(_criarMarcacao(ponto, isEntrada));
+
+      if (i == 0 && pontosDoDia.length > 1) {
+        widgets.add(_criarInfo('Turno 1 de ${_formatarDuracao(pontosDoDia[1].data!.difference(pontosDoDia[0].data!))}'));
+      } else if (i == 1 && pontosDoDia.length > 2) {
+        widgets.add(_criarInfo('Intervalo de ${_formatarDuracao(pontosDoDia[2].data!.difference(pontosDoDia[1].data!))}'));
+      } else if (i == 2 && pontosDoDia.length > 3) {
+        widgets.add(_criarInfo('Turno 2 de ${_formatarDuracao(pontosDoDia[3].data!.difference(pontosDoDia[2].data!))}'));
+      }
+    }
+
+    if (pontosDoDia.length == 4) {
+      final tempoTrabalhado = pontosDoDia[1].data!.difference(pontosDoDia[0].data!) +
+          pontosDoDia[3].data!.difference(pontosDoDia[2].data!);
+      widgets.add(_criarInfo('Tempo total trabalhado: ${_formatarDuracao(tempoTrabalhado)}'));
+    } else {
+      if (pontosDoDia.length == 1) {
+        widgets.add(_criarInfo('Turno 1 de ${_formatarDuracao(_duracaoTurno1)}'));
+        widgets.add(_criarPrevisaoItem(pontosDoDia[0].data!.add(_duracaoTurno1), 'Previsão de saída', Icons.logout, Colors.red));
+        widgets.add(_criarInfo('Intervalo de ${_formatarDuracao(_intervalo)}'));
+        widgets.add(_criarPrevisaoItem(pontosDoDia[0].data!.add(_duracaoTurno1).add(_intervalo), 'Previsão de retorno do intervalo', Icons.login, Colors.green));
+        widgets.add(_criarInfo('Turno 2 de ${_formatarDuracao(_duracaoTurno2)}'));
+        widgets.add(_criarPrevisaoItem(pontosDoDia[0].data!.add(_duracaoTurno1).add(_intervalo).add(_duracaoTurno2), 'Previsão de saída (do dia seguinte)', Icons.logout, Colors.red));
+        widgets.add(_criarInfo('Previsão total de trabalho: ${_formatarDuracao(_duracaoTurno1 + _intervalo + _duracaoTurno2)}'));
+      } else if (pontosDoDia.length == 2) {
+        widgets.add(_criarInfo('Intervalo de ${_formatarDuracao(_intervalo)}'));
+        widgets.add(_criarPrevisaoItem(pontosDoDia[1].data!.add(_intervalo), 'Previsão de retorno do intervalo', Icons.login, Colors.green));
+        widgets.add(_criarInfo('Turno 2 de ${_formatarDuracao(_duracaoTurno2)}'));
+        widgets.add(_criarPrevisaoItem(pontosDoDia[1].data!.add(_intervalo).add(_duracaoTurno2), 'Previsão de saída (do dia seguinte)', Icons.logout, Colors.red));
+        widgets.add(_criarInfo('Previsão total de trabalho: ${_formatarDuracao(_duracaoTurno1 + _intervalo + _duracaoTurno2)}'));
+      } else if (pontosDoDia.length == 3) {
+        final saldoTurno2 = _duracaoTurno1 - duracaoTurno1;
+        final duracaoTurno2Ajustada = _duracaoTurno2 + saldoTurno2;
+        widgets.add(_criarInfo('Turno 2 de ${_formatarDuracao(duracaoTurno2Ajustada)}'));
+        widgets.add(_criarPrevisaoItem(pontosDoDia[2].data!.add(duracaoTurno2Ajustada), 'Previsão de saída (do dia seguinte)', Icons.logout, Colors.red));
+        widgets.add(_criarInfo('Previsão total de trabalho: ${_formatarDuracao(_duracaoTurno1 + _intervalo + _duracaoTurno2)}'));
+        widgets.add(_criarInfo('Total trabalhado: ${_formatarDuracao(duracaoTurno1)}'));
+      } else {
+        widgets.add(_criarPrevisoes(pontosDoDia));
+      }
+    }
+    return ListView(children: widgets);
+  }
+
+  Widget _criarMarcacao(Ponto ponto, bool isEntrada) {
+    return PopupMenuButton<String>(
+      onSelected: (String value) {
+        if (value == 'editar') {
+          _abrirForm(pontoAtual: ponto, indice: _pontos.indexOf(ponto));
+        } else if (value == 'excluir') {
+          _excluirPonto(_pontos.indexOf(ponto));
+        }
+      },
+      itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+        const PopupMenuItem<String>(
+          value: 'editar',
+          child: ListTile(
+            leading: Icon(Icons.edit),
+            title: Text('Editar'),
+          ),
+        ),
+        const PopupMenuItem<String>(
+          value: 'excluir',
+          child: ListTile(
+            leading: Icon(Icons.delete),
+            title: Text('Excluir'),
+          ),
+        ),
+      ],
+      child: ListTile(
+        leading: Icon(
+          isEntrada ? Icons.login : Icons.logout,
+          color: isEntrada ? Colors.green : Colors.red,
+        ),
+        title: Text(
+          DateFormat('HH:mm').format(ponto.data!),
+          style: const TextStyle(color: Colors.white),
+        ),
+        subtitle: Text(
+          isEntrada ? 'Entrada' : 'Saída',
+          style: const TextStyle(color: Colors.white70),
+        ),
+      ),
+    );
+  }
+
+  Widget _criarInfo(String texto) {
+    return ListTile(
+      title: Text(
+        texto,
+        style: TextStyle(color: Colors.white70),
+      ),
+    );
+  }
+
+  Widget _criarPrevisoes(List<Ponto> pontosDoDia) {
     final agora = DateTime.now();
+    DateTime horaInicio1;
+    DateTime horaFim1;
+    DateTime horaInicio2;
+    DateTime horaFim2;
+
+    if (pontosDoDia.isNotEmpty) {
+      horaInicio1 = pontosDoDia[0].data!;
+      horaFim1 = pontosDoDia.length > 1 ? pontosDoDia[1].data! : horaInicio1.add(_duracaoTurno1);
+      horaInicio2 = pontosDoDia.length > 2 ? pontosDoDia[2].data! : horaFim1.add(_intervalo);
+      horaFim2 = pontosDoDia.length > 3 ? pontosDoDia[3].data! : horaInicio2.add(_duracaoTurno2);
+    } else {
+      horaInicio1 = agora;
+      horaFim1 = horaInicio1.add(_duracaoTurno1);
+      horaInicio2 = horaFim1.add(_intervalo);
+      horaFim2 = horaInicio2.add(_duracaoTurno2);
+    }
+
+    final previsaoTurno1 = horaFim1.difference(horaInicio1);
+    final previsaoIntervalo = horaInicio2.difference(horaFim1);
+    final previsaoTurno2 = horaFim2.difference(horaInicio2);
+    final previsaoTotal = previsaoTurno1 + previsaoTurno2;
+
+    return Column(
+      children: [
+        if (pontosDoDia.length < 1)
+          _criarPrevisaoItem(horaInicio1, 'Previsão de entrada', Icons.login, Colors.green),
+        ListTile(
+          title: Text(
+            'Turno 1 de ${_formatarDuracao(previsaoTurno1)}',
+            style: TextStyle(color: Colors.white70),
+          ),
+        ),
+        if (pontosDoDia.length < 2)
+          _criarPrevisaoItem(horaFim1, 'Previsão de saída', Icons.logout, Colors.red),
+        ListTile(
+          title: Text(
+            'Intervalo de ${_formatarDuracao(previsaoIntervalo)}',
+            style: TextStyle(color: Colors.white70),
+          ),
+        ),
+        if (pontosDoDia.length < 3)
+          _criarPrevisaoItem(horaInicio2, 'Previsão de retorno do intervalo', Icons.login, Colors.green),
+        ListTile(
+          title: Text(
+            'Turno 2 de ${_formatarDuracao(previsaoTurno2)}',
+            style: TextStyle(color: Colors.white70),
+          ),
+        ),
+        if (pontosDoDia.length < 4)
+          _criarPrevisaoItem(horaFim2, 'Previsão de saída', Icons.logout, Colors.red),
+        ListTile(
+          title: Text(
+            'Previsão total de trabalho: ${_formatarDuracao(previsaoTotal)}',
+            style: TextStyle(color: Colors.white70),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _criarPrevisaoItem(DateTime hora, String descricao, IconData icone, Color cor) {
+    final agora = DateTime.now();
+    final isDiaSeguinte = hora.isAfter(DateTime(agora.year, agora.month, agora.day, 23, 59));
+
+    return ListTile(
+      leading: Icon(icone, color: cor.withOpacity(0.5)),
+      title: Text(
+        DateFormat('HH:mm').format(hora),
+        style: TextStyle(color: Colors.white70),
+      ),
+      subtitle: Text(
+        isDiaSeguinte ? '$descricao (do dia seguinte)' : descricao,
+        style: TextStyle(color: Colors.white70),
+      ),
+    );
+  }
+
+  DateTime _parseHora(String hora, DateTime base) {
+    final partes = hora.split(':');
+    if (partes.length != 2) return base;
+    final horas = int.tryParse(partes[0]) ?? base.hour;
+    final minutos = int.tryParse(partes[1]) ?? base.minute;
+    return DateTime(base.year, base.month, base.day, horas, minutos);
+  }
+
+  Duration _calcularDuracao(String inicio, String fim) {
+    final inicioTime = _parseHora(inicio, DateTime.now());
+    final fimTime = _parseHora(fim, DateTime.now());
+    return fimTime.difference(inicioTime);
+  }
+
+  void _abrirForm({Ponto? pontoAtual, int? indice}) {
+    final key = GlobalKey<ConteudoFormDialogState>();
     showDialog(
       context: context,
-      builder: (BuildContext context){
+      builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(pontoAtual == null ? 'Novo Ponto' : 'Alterar Ponto ${pontoAtual.id}'),
-          content: ConteudoFormDialog(key: key, pontoAtual: pontoAtual),
+          title: Text(pontoAtual == null ? 'Novo Ponto' : 'Alterar Ponto ${pontoAtual?.id}'),
+          content: ConteudoFormDialog(key: key, pontoAtual: pontoAtual, podeEditar: pontoAtual != null),
           actions: [
             TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text('Cancelar'),
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancelar'),
             ),
             TextButton(
-                onPressed: () {
-                  if (key.currentState!.dadosValidados() &&
-                  key.currentState != null){
-                    setState(() {
-                      final novoPonto = key.currentState!.novoPonto;
-                      if( indice == null){
-                        novoPonto.id = ++ _ultimoId;
-                        _pontos.add(novoPonto);
-                      }else{
-                        _pontos[indice] = novoPonto;
-                      }
-                    });
-                    Navigator.of(context).pop();
-                  }
-                },
-                child: Text('Salvar'),
+              onPressed: () {
+                if (key.currentState!.dadosValidados() && key.currentState != null) {
+                  setState(() {
+                    final novoPonto = key.currentState!.novoPonto;
+                    if (indice == null) {
+                      novoPonto.id = ++_ultimoId;
+                      _pontos.add(novoPonto);
+                    } else {
+                      _pontos[indice] = novoPonto;
+                    }
+                    _salvarPontos();
+                  });
+                  Navigator.of(context).pop();
+                }
+              },
+              child: Text('Salvar'),
             )
           ],
         );
-      }
+      },
+    );
+  }
+
+  void _excluirPonto(int indice) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Excluir Ponto'),
+          content: const Text('Você tem certeza que deseja excluir este ponto?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _pontos.removeAt(indice);
+                  _salvarPontos();
+                });
+                Navigator.of(context).pop();
+              },
+              child: const Text('Excluir'),
+            )
+          ],
+        );
+      },
     );
   }
 }
