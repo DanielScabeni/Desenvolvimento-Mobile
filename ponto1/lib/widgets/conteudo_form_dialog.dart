@@ -133,9 +133,8 @@ class ConteudoFormDialogState extends State<ConteudoFormDialog> {
   Ponto get novoPonto {
     return Ponto(
       id: widget.pontoAtual?.id ?? 0,
-      descricao: '',
       data: dataHoraAtual,
-      horas: [horaFormatada],
+      hora: [horaFormatada],
       diaDeTrabalho: diaDeTrabalho,
     );
   }

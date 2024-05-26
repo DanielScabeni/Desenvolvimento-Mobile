@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:ponto1/database/data_base_provider.dart';
 import 'package:ponto1/pages/lista_page_ponto.dart';
 import 'package:ponto1/pages/configuracoes_page.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Chamada temporária para excluir o banco de dados.
+  // await DatabaseProvider.instance.deleteDatabase();
+
   runApp(const MyApp());
 }
 

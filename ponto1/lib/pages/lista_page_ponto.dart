@@ -6,6 +6,7 @@ import 'package:ponto1/model/ponto.dart';
 import 'package:ponto1/pages/lista_de_pontos.dart';
 import 'package:ponto1/widgets/conteudo_form_dialog.dart';
 import 'package:ponto1/pages/configuracoes_page.dart';
+import 'package:ponto1/database/ponto_dao.dart';
 
 class ListaPontoPage extends StatefulWidget {
   @override
@@ -57,24 +58,21 @@ class _ListaPontoPageState extends State<ListaPontoPage> {
   }
 
   Future<void> _carregarPontos() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? pontosJson = prefs.getString('pontos');
-    if (pontosJson != null) {
-      final List decoded = json.decode(pontosJson);
-      setState(() {
-        _pontos.addAll(decoded.map((p) => Ponto.fromMap(p)).toList());
-        _ultimoId = _pontos.isNotEmpty ? _pontos.last.id : 0;
-      });
-    }
+    final pontoDao = PontoDao();
+    final pontos = await pontoDao.listar();
+    setState(() {
+      _pontos.addAll(pontos);
+      _ultimoId = _pontos.isNotEmpty ? _pontos.last.id : 0;
+    });
   }
 
   Future<void> _carregarConfiguracoes() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _horaInicio1 = prefs.getString('horaInicio1') ?? '08:00';
-      _horaFim1 = prefs.getString('horaFim1') ?? '12:00';
-      _horaInicio2 = prefs.getString('horaInicio2') ?? '13:00';
-      _horaFim2 = prefs.getString('horaFim2') ?? '17:00';
+      _horaInicio1 = prefs.getString('hora_inicio1') ?? '08:00';
+      _horaFim1 = prefs.getString('hora_fim1') ?? '12:00';
+      _horaInicio2 = prefs.getString('hora_inicio2') ?? '13:00';
+      _horaFim2 = prefs.getString('hora_fim2') ?? '17:00';
       _duracaoTurno1 = _calcularDuracao(_horaInicio1, _horaFim1);
       _duracaoTurno2 = _calcularDuracao(_horaInicio2, _horaFim2);
       _intervalo = _calcularDuracao(_horaFim1, _horaInicio2);
@@ -82,9 +80,10 @@ class _ListaPontoPageState extends State<ListaPontoPage> {
   }
 
   Future<void> _salvarPontos() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String pontosJson = json.encode(_pontos.map((p) => p.toMap()).toList());
-    await prefs.setString('pontos', pontosJson);
+    final pontoDao = PontoDao();
+    for (var ponto in _pontos) {
+      await pontoDao.salvar(ponto);
+    }
   }
 
   List<Ponto> _filtrarPontosDoDia(DateTime data) {
@@ -472,30 +471,32 @@ class _ListaPontoPageState extends State<ListaPontoPage> {
   }
 
   void _excluirPonto(int indice) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Excluir Ponto'),
-          content: const Text('Você tem certeza que deseja excluir este ponto?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _pontos.removeAt(indice);
-                  _salvarPontos();
-                });
-                Navigator.of(context).pop();
-              },
-              child: const Text('Excluir'),
-            )
-          ],
-        );
-      },
-    );
+    if (indice >= 0 && indice < _pontos.length) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Excluir Ponto'),
+            content: const Text('Você tem certeza que deseja excluir este ponto?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancelar'),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    _pontos.removeAt(indice);
+                    _salvarPontos();
+                  });
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Excluir'),
+              )
+            ],
+          );
+        },
+      );
+    }
   }
 }

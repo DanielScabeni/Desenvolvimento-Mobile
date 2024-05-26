@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ponto1/database/configuracao_dao.dart';
+import 'package:ponto1/model/configuracao.dart';
 import 'package:intl/intl.dart';
 
 class ConfiguracoesPage extends StatefulWidget {
@@ -13,6 +14,7 @@ class _ConfiguracoesPageState extends State<ConfiguracoesPage> {
   final _horaFim1Controller = TextEditingController();
   final _horaInicio2Controller = TextEditingController();
   final _horaFim2Controller = TextEditingController();
+  final ConfiguracaoDao _configuracaoDao = ConfiguracaoDao();
 
   String _duracaoTurno1 = '';
   String _duracaoTurno2 = '';
@@ -25,23 +27,27 @@ class _ConfiguracoesPageState extends State<ConfiguracoesPage> {
   }
 
   Future<void> _carregarConfiguracoes() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _horaInicio1Controller.text = prefs.getString('horaInicio1') ?? '';
-      _horaFim1Controller.text = prefs.getString('horaFim1') ?? '';
-      _horaInicio2Controller.text = prefs.getString('horaInicio2') ?? '';
-      _horaFim2Controller.text = prefs.getString('horaFim2') ?? '';
+    final configuracao = await _configuracaoDao.obterConfiguracao();
+    if (configuracao != null) {
+      setState(() {
+        _horaInicio1Controller.text = configuracao.horaInicio1;
+        _horaFim1Controller.text = configuracao.horaFim1;
+        _horaInicio2Controller.text = configuracao.horaInicio2;
+        _horaFim2Controller.text = configuracao.horaFim2;
 
-      _calcularDuracoes();
-    });
+        _calcularDuracoes();
+      });
+    }
   }
 
   Future<void> _salvarConfiguracoes() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('horaInicio1', _horaInicio1Controller.text);
-    await prefs.setString('horaFim1', _horaFim1Controller.text);
-    await prefs.setString('horaInicio2', _horaInicio2Controller.text);
-    await prefs.setString('horaFim2', _horaFim2Controller.text);
+    final configuracao = Configuracao(
+      horaInicio1: _horaInicio1Controller.text,
+      horaFim1: _horaFim1Controller.text,
+      horaInicio2: _horaInicio2Controller.text,
+      horaFim2: _horaFim2Controller.text,
+    );
+    await _configuracaoDao.salvar(configuracao);
   }
 
   Future<void> _selecionarHora(BuildContext context, TextEditingController controller) async {
@@ -95,10 +101,10 @@ class _ConfiguracoesPageState extends State<ConfiguracoesPage> {
 
   void _definirPadrao() {
     setState(() {
-      _horaInicio1Controller.text = '08:00';
+      _horaInicio1Controller.text = '07:42';
       _horaFim1Controller.text = '12:00';
-      _horaInicio2Controller.text = '13:00';
-      _horaFim2Controller.text = '17:00';
+      _horaInicio2Controller.text = '13:30';
+      _horaFim2Controller.text = '18:00';
       _calcularDuracoes();
     });
   }
