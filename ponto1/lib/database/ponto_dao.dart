@@ -26,7 +26,7 @@ class PontoDao with ChangeNotifier {
   Future<bool> salvar(Ponto ponto) async {
     final db = await dbProvider.database;
     final valores = ponto.toMap();
-    if (ponto.id == 0) {
+    if (ponto.id == 0) { //nao esta chegando no insert pq o primeiro ponto ja vem com valor 1, ai nao cai nessa condicao, talvez fazer o ponto vir como nulo para o autoincrement do banco colocar o id, ou fazer ele vem como 0 sla
       ponto.id = await db.insert('pontos', valores);
       print('Ponto inserido: ${ponto.toMap()}');
     } else {
