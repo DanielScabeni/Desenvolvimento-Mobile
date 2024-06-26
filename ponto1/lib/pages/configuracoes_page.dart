@@ -42,12 +42,13 @@ class _ConfiguracoesPageState extends State<ConfiguracoesPage> {
 
   Future<void> _salvarConfiguracoes() async {
     final configuracao = Configuracao(
+      id: 1, // Defina um ID fixo para garantir que você esteja atualizando a mesma configuração.
       horaInicio1: _horaInicio1Controller.text,
       horaFim1: _horaFim1Controller.text,
       horaInicio2: _horaInicio2Controller.text,
       horaFim2: _horaFim2Controller.text,
     );
-    await _configuracaoDao.salvar(configuracao);
+    await _configuracaoDao.atualizar(configuracao);
   }
 
   Future<void> _selecionarHora(BuildContext context, TextEditingController controller) async {

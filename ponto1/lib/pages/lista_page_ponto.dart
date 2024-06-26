@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ponto1/model/ponto.dart';
 import 'package:ponto1/pages/lista_de_pontos.dart';
 import 'package:ponto1/widgets/conteudo_form_dialog.dart';
 import 'package:ponto1/pages/configuracoes_page.dart';
-import 'package:ponto1/database/ponto_dao.dart';
+import 'package:ponto1/provider/ponto_provider.dart';
+import 'package:ponto1/database/configuracao_dao.dart';
+import 'package:ponto1/model/configuracao.dart';
 
 class ListaPontoPage extends StatefulWidget {
   @override
@@ -14,8 +18,6 @@ class ListaPontoPage extends StatefulWidget {
 
 class _ListaPontoPageState extends State<ListaPontoPage> {
   int _selectedIndex = 0;
-  final _pontos = <Ponto>[];
-  var _ultimoId = 0;
   DateTime _dataSelecionada = DateTime.now();
 
   String _horaInicio1 = '';
@@ -25,12 +27,14 @@ class _ListaPontoPageState extends State<ListaPontoPage> {
   Duration _duracaoTurno1 = Duration.zero;
   Duration _duracaoTurno2 = Duration.zero;
   Duration _intervalo = Duration.zero;
+  Position? _localizacaoAtual; // Adicionado para armazenar a localização atual
 
   @override
   void initState() {
     super.initState();
-    _carregarPontos();
     _carregarConfiguracoes();
+    _carregarPontos();
+    _obterLocalizacaoAtual(); // Adicionado para obter a localização atual ao iniciar
   }
 
   void _onItemTapped(int index) {
@@ -45,8 +49,9 @@ class _ListaPontoPageState extends State<ListaPontoPage> {
   }
 
   void _navegarParaListaDePontos() {
+    final pontos = Provider.of<PontoProvider>(context, listen: false).pontos;
     Navigator.of(context).push(MaterialPageRoute(
-      builder: (context) => ListaDePontosPage(pontos: _pontos),
+      builder: (context) => ListaDePontosPage(pontos: pontos),
     ));
   }
 
@@ -57,39 +62,88 @@ class _ListaPontoPageState extends State<ListaPontoPage> {
   }
 
   Future<void> _carregarPontos() async {
-    final pontoDao = PontoDao();
-    final pontos = await pontoDao.listar();
-    setState(() {
-      _pontos.clear();
-      _pontos.addAll(pontos);
-      _ultimoId = _pontos.isNotEmpty ? _pontos.last.id : 0;
-    });
-    print('Pontos carregados: $_pontos');
+    await Provider.of<PontoProvider>(context, listen: false).carregarPontos();
   }
 
-
   Future<void> _carregarConfiguracoes() async {
-    final prefs = await SharedPreferences.getInstance();
+    final configuracaoDao = ConfiguracaoDao();
+    final configuracao = await configuracaoDao.obterConfiguracao();
     setState(() {
-      _horaInicio1 = prefs.getString('hora_inicio1') ?? '08:00';
-      _horaFim1 = prefs.getString('hora_fim1') ?? '12:00';
-      _horaInicio2 = prefs.getString('hora_inicio2') ?? '13:00';
-      _horaFim2 = prefs.getString('hora_fim2') ?? '17:00';
+      _horaInicio1 = configuracao?.horaInicio1 ?? '08:00';
+      _horaFim1 = configuracao?.horaFim1 ?? '12:00';
+      _horaInicio2 = configuracao?.horaInicio2 ?? '13:00';
+      _horaFim2 = configuracao?.horaFim2 ?? '17:00';
       _duracaoTurno1 = _calcularDuracao(_horaInicio1, _horaFim1);
       _duracaoTurno2 = _calcularDuracao(_horaInicio2, _horaFim2);
       _intervalo = _calcularDuracao(_horaFim1, _horaInicio2);
     });
   }
 
-  Future<void> _salvarPontos() async {
-    final pontoDao = PontoDao();
-    for (var ponto in _pontos) {
-      await pontoDao.salvar(ponto);
+  Future<void> _obterLocalizacaoAtual() async {
+    bool servicoHabilitado = await _servicoHabilitado();
+    if (!servicoHabilitado) {
+      return;
     }
+
+    bool permissoesPermitidas = await _permissoesPermitidas();
+    if (!permissoesPermitidas) {
+      return;
+    }
+
+    _localizacaoAtual = await Geolocator.getCurrentPosition();
   }
 
-  List<Ponto> _filtrarPontosDoDia(DateTime data) {
-    return _pontos.where((ponto) {
+  Future<bool> _permissoesPermitidas() async {
+    LocationPermission permissao = await Geolocator.checkPermission();
+
+    if (permissao == LocationPermission.denied) {
+      permissao = await Geolocator.requestPermission();
+      if (permissao == LocationPermission.denied) {
+        _mostrarMensagem('Não será possível usar o recurso por falta de permissão');
+        return false;
+      }
+    }
+    if (permissao == LocationPermission.deniedForever) {
+      await _mostrarDialogMensagem('Para utilizar esse recurso, você deverá acessar as configurações do app e permitir a utilização do serviço de localização');
+      Geolocator.openAppSettings();
+      return false;
+    }
+    return true;
+  }
+
+  Future<bool> _servicoHabilitado() async {
+    bool servicoHabilitado = await Geolocator.isLocationServiceEnabled();
+
+    if (!servicoHabilitado) {
+      await _mostrarDialogMensagem('Para utilizar esse serviço, você deverá habilitar o serviço de localização do dispositivo.');
+      Geolocator.openLocationSettings();
+      return false;
+    }
+    return true;
+  }
+
+  void _mostrarMensagem(String mensagem) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(mensagem),
+    ));
+  }
+
+  Future<void> _mostrarDialogMensagem(String mensagem) async {
+    await showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+              title: const Text('Atenção'),
+              content: Text(mensagem),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('OK'))
+              ],
+            ));
+  }
+
+  List<Ponto> _filtrarPontosDoDia(List<Ponto> pontos, DateTime data) {
+    return pontos.where((ponto) {
       return ponto.diaDeTrabalho!.year == data.year &&
           ponto.diaDeTrabalho!.month == data.month &&
           ponto.diaDeTrabalho!.day == data.day;
@@ -122,7 +176,8 @@ class _ListaPontoPageState extends State<ListaPontoPage> {
 
   @override
   Widget build(BuildContext context) {
-    final pontosDoDia = _filtrarPontosDoDia(_dataSelecionada);
+    final pontosProvider = Provider.of<PontoProvider>(context);
+    final pontosDoDia = _filtrarPontosDoDia(pontosProvider.pontos, _dataSelecionada);
     final duracaoTurno1 = pontosDoDia.length >= 2 ? pontosDoDia[1].data!.difference(pontosDoDia[0].data!) : Duration.zero;
     final saldoTurno1 = _calcularSaldoTurno(duracaoTurno1, _duracaoTurno1);
     final duracaoTurno2 = pontosDoDia.length >= 4 ? pontosDoDia[3].data!.difference(pontosDoDia[2].data!) : Duration.zero;
@@ -158,6 +213,8 @@ class _ListaPontoPageState extends State<ListaPontoPage> {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
+          await _carregarPontos();
+          await _carregarConfiguracoes();
           setState(() {});
         },
         child: Column(
@@ -294,13 +351,22 @@ class _ListaPontoPageState extends State<ListaPontoPage> {
   Widget _criarMarcacao(Ponto ponto, bool isEntrada) {
     return PopupMenuButton<String>(
       onSelected: (String value) {
-        if (value == 'editar') {
-          _abrirForm(pontoAtual: ponto, indice: _pontos.indexOf(ponto));
+      if (value == 'ver') {
+        _mostrarPonto(ponto);
+      } else if (value == 'editar') {
+          _abrirForm(pontoAtual: ponto, indice: Provider.of<PontoProvider>(context, listen: false).pontos.indexOf(ponto));
         } else if (value == 'excluir') {
-          _excluirPonto(_pontos.indexOf(ponto));
+          _excluirPonto(Provider.of<PontoProvider>(context, listen: false).pontos.indexOf(ponto));
         }
       },
       itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+      const PopupMenuItem<String>(
+        value: 'ver',
+        child: ListTile(
+          leading: Icon(Icons.visibility),
+          title: Text('Ver'),
+        ),
+      ),
         const PopupMenuItem<String>(
           value: 'editar',
           child: ListTile(
@@ -332,6 +398,33 @@ class _ListaPontoPageState extends State<ListaPontoPage> {
       ),
     );
   }
+
+void _mostrarPonto(Ponto ponto) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Detalhes do Ponto'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Data: ${DateFormat('dd/MM/yyyy').format(ponto.data!)}'),
+            Text('Hora: ${DateFormat('HH:mm').format(ponto.data!)}'),
+            Text('Latitude: ${ponto.latitude ?? 'N/A'}'),
+            Text('Longitude: ${ponto.longitude ?? 'N/A'}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Fechar'),
+          ),
+        ],
+      );
+    },
+  );
+}
 
   Widget _criarInfo(String texto) {
     return ListTile(
@@ -449,19 +542,18 @@ class _ListaPontoPageState extends State<ListaPontoPage> {
               child: Text('Cancelar'),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 if (key.currentState!.dadosValidados() && key.currentState != null) {
-                  setState(() {
                     final novoPonto = key.currentState!.novoPonto;
                     if (indice == null) {
-                      novoPonto.id = ++_ultimoId;
-                      _pontos.add(novoPonto);
+                      novoPonto.id = 0; // Ensure the ID is 0 for new points
+                      await Provider.of<PontoProvider>(context, listen: false).adicionarPonto(novoPonto);
                     } else {
-                      _pontos[indice] = novoPonto;
+                      novoPonto.id = Provider.of<PontoProvider>(context, listen: false).pontos[indice].id;
+                      await Provider.of<PontoProvider>(context, listen: false).adicionarPonto(novoPonto);
                     }
-                    _salvarPontos();
-                  });
                   Navigator.of(context).pop();
+                  await _carregarPontos(); // Reload after saving
                 }
               },
               child: Text('Salvar'),
@@ -472,8 +564,8 @@ class _ListaPontoPageState extends State<ListaPontoPage> {
     );
   }
 
-  void _excluirPonto(int indice) {
-    if (indice >= 0 && indice < _pontos.length) {
+  void _excluirPonto(int indice) async {
+    if (indice >= 0 && indice < Provider.of<PontoProvider>(context, listen: false).pontos.length) {
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -486,12 +578,12 @@ class _ListaPontoPageState extends State<ListaPontoPage> {
                 child: const Text('Cancelar'),
               ),
               TextButton(
-                onPressed: () {
-                  setState(() {
-                    _pontos.removeAt(indice);
-                    _salvarPontos();
-                  });
+                onPressed: () async {
+                  await Provider.of<PontoProvider>(context, listen: false).removerPonto(
+                      Provider.of<PontoProvider>(context, listen: false).pontos[indice].id,
+                    );
                   Navigator.of(context).pop();
+                  await _carregarPontos(); // Reload after deleting
                 },
                 child: const Text('Excluir'),
               )

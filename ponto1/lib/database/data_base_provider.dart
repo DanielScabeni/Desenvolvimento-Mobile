@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 
 class DatabaseProvider {
   static const _dbName = 'ponto_app.db';
-  static const _dbVersion = 1;
+  static const _dbVersion = 2; // Incrementando a versão do banco de dados
 
   DatabaseProvider._init();
   static final DatabaseProvider instance = DatabaseProvider._init();
@@ -24,6 +24,7 @@ class DatabaseProvider {
       dbPath,
       version: _dbVersion,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -33,7 +34,9 @@ class DatabaseProvider {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         dia_de_trabalho TEXT NOT NULL,
         data TEXT NOT NULL,
-        hora TEXT NOT NULL
+        hora TEXT NOT NULL,
+        latitude REAL,
+        longitude REAL
       );
     ''');
 
@@ -49,6 +52,13 @@ class DatabaseProvider {
     print('Banco de dados criado com sucesso!');
   }
 
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE pontos ADD COLUMN latitude REAL;');
+      await db.execute('ALTER TABLE pontos ADD COLUMN longitude REAL;');
+    }
+  }
+
   Future<void> close() async {
     if (_database != null) {
       await _database!.close();
@@ -62,4 +72,3 @@ class DatabaseProvider {
     print('Banco de dados deletado com sucesso!');
   }
 }
-

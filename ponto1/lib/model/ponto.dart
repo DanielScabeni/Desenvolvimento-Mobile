@@ -5,12 +5,16 @@ class Ponto {
   DateTime? data;
   DateTime? diaDeTrabalho;
   List<String> hora;
+  double? latitude; // Adicionado campo latitude
+  double? longitude; // Adicionado campo longitude
 
   Ponto({
-    required this.id,
+    this.id = 0,
     required this.data,
     required this.diaDeTrabalho,
     required this.hora,
+    this.latitude,
+    this.longitude,
   });
 
   Map<String, dynamic> toMap() {
@@ -19,6 +23,8 @@ class Ponto {
       'data': data?.toIso8601String(),
       'dia_de_trabalho': diaDeTrabalho?.toIso8601String(),
       'hora': jsonEncode(hora),
+      'latitude': latitude,
+      'longitude': longitude,
     };
   }
 
@@ -28,6 +34,8 @@ class Ponto {
       data: map['data'] != null ? DateTime.parse(map['data']) : null,
       diaDeTrabalho: map['dia_de_trabalho'] != null ? DateTime.parse(map['dia_de_trabalho']) : null,
       hora: map['hora'] != null ? List<String>.from(jsonDecode(map['hora'])) : [],
+      latitude: map['latitude'],
+      longitude: map['longitude'],
     );
   }
 

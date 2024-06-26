@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:ponto1/model/ponto.dart';
+import 'package:geolocator/geolocator.dart';
 
 class ConteudoFormDialog extends StatefulWidget {
   final Ponto? pontoAtual;
@@ -19,6 +20,8 @@ class ConteudoFormDialogState extends State<ConteudoFormDialog> {
   late String dataFormatada;
   late String horaFormatada;
   late DateTime diaDeTrabalho;
+  double? latitude;
+  double? longitude;
 
   @override
   void initState() {
@@ -27,6 +30,12 @@ class ConteudoFormDialogState extends State<ConteudoFormDialog> {
     diaDeTrabalho = widget.pontoAtual?.diaDeTrabalho ?? DateTime.now();
     dataFormatada = DateFormat('dd/MM/yyyy').format(dataHoraAtual);
     horaFormatada = DateFormat('HH:mm').format(dataHoraAtual);
+    latitude = widget.pontoAtual?.latitude;
+    longitude = widget.pontoAtual?.longitude;
+
+    if (widget.pontoAtual == null) {
+      _obterLocalizacaoAtual();
+    }
   }
 
   @override
@@ -122,6 +131,14 @@ class ConteudoFormDialogState extends State<ConteudoFormDialog> {
               'Hora: $horaFormatada',
               style: TextStyle(fontSize: 20),
             ),
+          SizedBox(height: 16),
+          Text('Lat.: ${latitude ?? 'N/A'}'),
+          Text('Long.: ${longitude ?? 'N/A'}'),
+          if (widget.podeEditar)
+            ElevatedButton(
+              onPressed: _atualizarLocalizacao,
+              child: Text('Atualizar Localização'),
+            ),
         ],
       ),
     );
@@ -135,6 +152,98 @@ class ConteudoFormDialogState extends State<ConteudoFormDialog> {
       data: dataHoraAtual,
       hora: [horaFormatada],
       diaDeTrabalho: diaDeTrabalho,
+      latitude: latitude,
+      longitude: longitude,
+    );
+  }
+
+  void _atualizarLocalizacao() async {
+    bool servicoHabilitado = await Geolocator.isLocationServiceEnabled();
+    if (!servicoHabilitado) {
+      await _mostrarDialogMensagem('Para utilizar esse serviço, você deverá '
+          'habilitar o serviço de localização do dispositivo.');
+      Geolocator.openLocationSettings();
+      return;
+    }
+
+    LocationPermission permissao = await Geolocator.checkPermission();
+    if (permissao == LocationPermission.denied) {
+      permissao = await Geolocator.requestPermission();
+      if (permissao == LocationPermission.denied) {
+        _mostrarMensagem(
+            'Não será possível usar o recurso por falta de permissão');
+        return;
+      }
+    }
+    if (permissao == LocationPermission.deniedForever) {
+      await _mostrarDialogMensagem('Para utilizar esse recurso, você deverá acessar as configurações'
+          ' do app e permitir a utilização do serviço de localização');
+      Geolocator.openAppSettings();
+      return;
+    }
+
+    Position posicaoAtual = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+
+    setState(() {
+      latitude = posicaoAtual.latitude;
+      longitude = posicaoAtual.longitude;
+    });
+  }
+
+  void _obterLocalizacaoAtual() async {
+    bool servicoHabilitado = await Geolocator.isLocationServiceEnabled();
+    if (!servicoHabilitado) {
+      await _mostrarDialogMensagem('Para utilizar esse serviço, você deverá '
+          'habilitar o serviço de localização do dispositivo.');
+      Geolocator.openLocationSettings();
+      return;
+    }
+
+    LocationPermission permissao = await Geolocator.checkPermission();
+    if (permissao == LocationPermission.denied) {
+      permissao = await Geolocator.requestPermission();
+      if (permissao == LocationPermission.denied) {
+        _mostrarMensagem(
+            'Não será possível usar o recurso por falta de permissão');
+        return;
+      }
+    }
+    if (permissao == LocationPermission.deniedForever) {
+      await _mostrarDialogMensagem('Para utilizar esse recurso, você deverá acessar as configurações'
+          ' do app e permitir a utilização do serviço de localização');
+      Geolocator.openAppSettings();
+      return;
+    }
+
+    Position posicaoAtual = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+
+    setState(() {
+      latitude = posicaoAtual.latitude;
+      longitude = posicaoAtual.longitude;
+    });
+  }
+
+  void _mostrarMensagem(String mensagem) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(mensagem),
+    ));
+  }
+
+  Future<void> _mostrarDialogMensagem(String mensagem) async {
+    await showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Atenção'),
+          content: Text(mensagem),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK')
+            )
+          ],
+        )
     );
   }
 }
