@@ -27,7 +27,7 @@ class PontoDao with ChangeNotifier {
     final db = await dbProvider.database;
     final valores = ponto.toMap();
     if (ponto.id == 0) {
-      valores.remove('id'); // Remove the ID to let the database assign it
+      valores.remove('id');
       ponto.id = await db.insert('pontos', valores);
       print('Ponto inserido: ${ponto.toMap()}');
     } else {

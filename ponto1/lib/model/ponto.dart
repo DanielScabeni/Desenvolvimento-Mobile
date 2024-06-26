@@ -5,8 +5,8 @@ class Ponto {
   DateTime? data;
   DateTime? diaDeTrabalho;
   List<String> hora;
-  double? latitude; // Adicionado campo latitude
-  double? longitude; // Adicionado campo longitude
+  double? latitude;
+  double? longitude;
 
   Ponto({
     this.id = 0,

@@ -91,7 +91,7 @@ class _ListaDePontosPageState extends State<ListaDePontosPage> {
         title: Text('Lista de Pontos', style: TextStyle(color: Colors.white)),
         backgroundColor: Theme.of(context).primaryColor,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white), // Altere a cor da seta para branco
+          icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
             Navigator.of(context).pop();
           },

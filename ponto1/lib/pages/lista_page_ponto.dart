@@ -10,6 +10,7 @@ import 'package:ponto1/pages/configuracoes_page.dart';
 import 'package:ponto1/provider/ponto_provider.dart';
 import 'package:ponto1/database/configuracao_dao.dart';
 import 'package:ponto1/model/configuracao.dart';
+import 'package:maps_launcher/maps_launcher.dart';
 
 class ListaPontoPage extends StatefulWidget {
   @override
@@ -27,14 +28,14 @@ class _ListaPontoPageState extends State<ListaPontoPage> {
   Duration _duracaoTurno1 = Duration.zero;
   Duration _duracaoTurno2 = Duration.zero;
   Duration _intervalo = Duration.zero;
-  Position? _localizacaoAtual; // Adicionado para armazenar a localização atual
+  Position? _localizacaoAtual;
 
   @override
   void initState() {
     super.initState();
     _carregarConfiguracoes();
     _carregarPontos();
-    _obterLocalizacaoAtual(); // Adicionado para obter a localização atual ao iniciar
+    _obterLocalizacaoAtual();
   }
 
   void _onItemTapped(int index) {
@@ -323,7 +324,7 @@ class _ListaPontoPageState extends State<ListaPontoPage> {
         widgets.add(_criarInfo('Intervalo de ${_formatarDuracao(_intervalo)}'));
         widgets.add(_criarPrevisaoItem(pontosDoDia[0].data!.add(_duracaoTurno1).add(_intervalo), 'Previsão de retorno do intervalo', Icons.login, Colors.green));
         widgets.add(_criarInfo('Turno 2 de ${_formatarDuracao(_duracaoTurno2)}'));
-        widgets.add(_criarPrevisaoItem(pontosDoDia[0].data!.add(_duracaoTurno1).add(_intervalo).add(_duracaoTurno2), 'Previsão de saída (do dia seguinte)', Icons.logout, Colors.red));
+        widgets.add(_criarPrevisaoItem(pontosDoDia[0].data!.add(_duracaoTurno1).add(_intervalo).add(_duracaoTurno2), 'Previsão de saída', Icons.logout, Colors.red));
         widgets.add(_criarInfo('Previsão total de trabalho: ${_formatarDuracao(_duracaoTurno1 + _duracaoTurno2)}'));
       } else if (pontosDoDia.length == 2) {
         final saldoTurno2 = _duracaoTurno1 - duracaoTurno1;
@@ -331,14 +332,14 @@ class _ListaPontoPageState extends State<ListaPontoPage> {
         widgets.add(_criarInfo('Intervalo de ${_formatarDuracao(_intervalo)}'));
         widgets.add(_criarPrevisaoItem(pontosDoDia[1].data!.add(_intervalo), 'Previsão de retorno do intervalo', Icons.login, Colors.green));
         widgets.add(_criarInfo('Turno 2 de ${_formatarDuracao(duracaoTurno2Ajustada)}'));
-        widgets.add(_criarPrevisaoItem(pontosDoDia[1].data!.add(_intervalo).add(duracaoTurno2Ajustada), 'Previsão de saída (do dia seguinte)', Icons.logout, Colors.red));
+        widgets.add(_criarPrevisaoItem(pontosDoDia[1].data!.add(_intervalo).add(duracaoTurno2Ajustada), 'Previsão de saída', Icons.logout, Colors.red));
         widgets.add(_criarInfo('Previsão total de trabalho: ${_formatarDuracao(_duracaoTurno1 + _duracaoTurno2)}'));
         widgets.add(_criarInfo('Total trabalhado: ${_formatarDuracao(duracaoTurno1)}'));
       } else if (pontosDoDia.length == 3) {
         final saldoTurno2 = _duracaoTurno1 - duracaoTurno1;
         final duracaoTurno2Ajustada = _duracaoTurno2 + saldoTurno2;
         widgets.add(_criarInfo('Turno 2 de ${_formatarDuracao(duracaoTurno2Ajustada)}'));
-        widgets.add(_criarPrevisaoItem(pontosDoDia[2].data!.add(duracaoTurno2Ajustada), 'Previsão de saída (do dia seguinte)', Icons.logout, Colors.red));
+        widgets.add(_criarPrevisaoItem(pontosDoDia[2].data!.add(duracaoTurno2Ajustada), 'Previsão de saída', Icons.logout, Colors.red));
         widgets.add(_criarInfo('Previsão total de trabalho: ${_formatarDuracao(_duracaoTurno1 + _duracaoTurno2)}'));
         widgets.add(_criarInfo('Total trabalhado: ${_formatarDuracao(duracaoTurno1)}'));
       } else {
@@ -352,7 +353,7 @@ class _ListaPontoPageState extends State<ListaPontoPage> {
     return PopupMenuButton<String>(
       onSelected: (String value) {
       if (value == 'ver') {
-        _mostrarPonto(ponto);
+        _mostrarDetalhesPonto(ponto);
       } else if (value == 'editar') {
           _abrirForm(pontoAtual: ponto, indice: Provider.of<PontoProvider>(context, listen: false).pontos.indexOf(ponto));
         } else if (value == 'excluir') {
@@ -397,7 +398,7 @@ class _ListaPontoPageState extends State<ListaPontoPage> {
         ),
       ),
     );
-  }
+}
 
 void _mostrarPonto(Ponto ponto) {
   showDialog(
@@ -425,6 +426,42 @@ void _mostrarPonto(Ponto ponto) {
     },
   );
 }
+
+void _mostrarDetalhesPonto(Ponto ponto) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Detalhes do Ponto'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Data: ${DateFormat('dd/MM/yyyy').format(ponto.diaDeTrabalho!)}'),
+            Text('Hora: ${DateFormat('HH:mm').format(ponto.data!)}'),
+            Text('Latitude: ${ponto.latitude}'),
+            Text('Longitude: ${ponto.longitude}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              _abrirNoGoogleMaps(ponto.latitude!, ponto.longitude!);
+            },
+            child: Text('Abrir no Google Maps'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Fechar'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+  void _abrirNoGoogleMaps(double latitude, double longitude) {
+    MapsLauncher.launchCoordinates(latitude, longitude);
+  }
 
   Widget _criarInfo(String texto) {
     return ListTile(
@@ -545,15 +582,17 @@ void _mostrarPonto(Ponto ponto) {
               onPressed: () async {
                 if (key.currentState!.dadosValidados() && key.currentState != null) {
                     final novoPonto = key.currentState!.novoPonto;
+                  novoPonto.latitude = _localizacaoAtual?.latitude;
+                  novoPonto.longitude = _localizacaoAtual?.longitude;
                     if (indice == null) {
-                      novoPonto.id = 0; // Ensure the ID is 0 for new points
+                      novoPonto.id = 0;
                       await Provider.of<PontoProvider>(context, listen: false).adicionarPonto(novoPonto);
                     } else {
                       novoPonto.id = Provider.of<PontoProvider>(context, listen: false).pontos[indice].id;
                       await Provider.of<PontoProvider>(context, listen: false).adicionarPonto(novoPonto);
                     }
                   Navigator.of(context).pop();
-                  await _carregarPontos(); // Reload after saving
+                  await _carregarPontos();
                 }
               },
               child: Text('Salvar'),
@@ -583,7 +622,7 @@ void _mostrarPonto(Ponto ponto) {
                       Provider.of<PontoProvider>(context, listen: false).pontos[indice].id,
                     );
                   Navigator.of(context).pop();
-                  await _carregarPontos(); // Reload after deleting
+                  await _carregarPontos();
                 },
                 child: const Text('Excluir'),
               )

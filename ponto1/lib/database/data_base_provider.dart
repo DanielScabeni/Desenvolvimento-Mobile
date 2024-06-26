@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 
 class DatabaseProvider {
   static const _dbName = 'ponto_app.db';
-  static const _dbVersion = 2; // Incrementando a versão do banco de dados
+  static const _dbVersion = 2; 
 
   DatabaseProvider._init();
   static final DatabaseProvider instance = DatabaseProvider._init();
