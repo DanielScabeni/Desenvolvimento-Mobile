@@ -14,6 +14,7 @@ class _ConfiguracoesPageState extends State<ConfiguracoesPage> {
   final _horaFim1Controller = TextEditingController();
   final _horaInicio2Controller = TextEditingController();
   final _horaFim2Controller = TextEditingController();
+  final _maxMarcacoesController = TextEditingController();
   final ConfiguracaoDao _configuracaoDao = ConfiguracaoDao();
 
   String _duracaoTurno1 = '';
@@ -34,6 +35,7 @@ class _ConfiguracoesPageState extends State<ConfiguracoesPage> {
         _horaFim1Controller.text = configuracao.horaFim1;
         _horaInicio2Controller.text = configuracao.horaInicio2;
         _horaFim2Controller.text = configuracao.horaFim2;
+        _maxMarcacoesController.text = configuracao.maxMarcacoes.toString();
 
         _calcularDuracoes();
       });
@@ -47,6 +49,7 @@ class _ConfiguracoesPageState extends State<ConfiguracoesPage> {
       horaFim1: _horaFim1Controller.text,
       horaInicio2: _horaInicio2Controller.text,
       horaFim2: _horaFim2Controller.text,
+      maxMarcacoes: int.tryParse(_maxMarcacoesController.text) ?? 4,
     );
     await _configuracaoDao.atualizar(configuracao);
   }
@@ -106,6 +109,7 @@ class _ConfiguracoesPageState extends State<ConfiguracoesPage> {
       _horaFim1Controller.text = '12:00';
       _horaInicio2Controller.text = '13:30';
       _horaFim2Controller.text = '18:00';
+      _maxMarcacoesController.text = '4';
       _calcularDuracoes();
     });
   }
@@ -118,8 +122,8 @@ class _ConfiguracoesPageState extends State<ConfiguracoesPage> {
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: Column(
@@ -154,6 +158,8 @@ class _ConfiguracoesPageState extends State<ConfiguracoesPage> {
                   style: TextStyle(color: Colors.white),
                 ),
               _buildTimeField('Fim 2º turno', _horaFim2Controller, context),
+              SizedBox(height: 20),
+              _buildMaxMarcacoesField('Número máximo de marcações', _maxMarcacoesController),
               SizedBox(height: 20),
               Center(
                 child: ElevatedButton(
@@ -210,6 +216,33 @@ class _ConfiguracoesPageState extends State<ConfiguracoesPage> {
           },
         ),
       ),
+    );
+  }
+
+  Widget _buildMaxMarcacoesField(String label, TextEditingController controller) {
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: Colors.white),
+        enabledBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: Colors.white),
+        ),
+        focusedBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: Colors.white),
+        ),
+      ),
+      style: TextStyle(color: Colors.white),
+      keyboardType: TextInputType.number,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Por favor, insira um número';
+        }
+        if (int.tryParse(value) == null) {
+          return 'Por favor, insira um número válido';
+        }
+        return null;
+      },
     );
   }
 

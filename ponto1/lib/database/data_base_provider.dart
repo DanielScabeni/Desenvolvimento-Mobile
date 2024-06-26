@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 
 class DatabaseProvider {
   static const _dbName = 'ponto_app.db';
-  static const _dbVersion = 2; 
+  static const _dbVersion = 3; 
 
   DatabaseProvider._init();
   static final DatabaseProvider instance = DatabaseProvider._init();
@@ -46,7 +46,8 @@ class DatabaseProvider {
         hora_inicio1 TEXT NOT NULL,
         hora_fim1 TEXT NOT NULL,
         hora_inicio2 TEXT NOT NULL,
-        hora_fim2 TEXT NOT NULL
+        hora_fim2 TEXT NOT NULL,
+        max_marcacoes INTEGER NOT NULL DEFAULT 4
       );
     ''');
     print('Banco de dados criado com sucesso!');
@@ -56,6 +57,9 @@ class DatabaseProvider {
     if (oldVersion < 2) {
       await db.execute('ALTER TABLE pontos ADD COLUMN latitude REAL;');
       await db.execute('ALTER TABLE pontos ADD COLUMN longitude REAL;');
+    }
+    if (oldVersion < 3) {
+      await db.execute('ALTER TABLE configuracoes ADD COLUMN max_marcacoes INTEGER NOT NULL DEFAULT 4;');
     }
   }
 

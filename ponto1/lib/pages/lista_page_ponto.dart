@@ -582,8 +582,21 @@ void _mostrarDetalhesPonto(Ponto ponto) {
               onPressed: () async {
                 if (key.currentState!.dadosValidados() && key.currentState != null) {
                     final novoPonto = key.currentState!.novoPonto;
-                  novoPonto.latitude = _localizacaoAtual?.latitude;
-                  novoPonto.longitude = _localizacaoAtual?.longitude;
+                final configuracao = await _carregarConfiguracao();
+
+                final pontosDoDia = _filtrarPontosDoDia(
+                  Provider.of<PontoProvider>(context, listen: false).pontos,
+                  novoPonto.diaDeTrabalho!,
+                );
+
+                if (pontosDoDia.length >= configuracao.maxMarcacoes) {
+                  _mostrarMensagem('Número máximo de marcações atingido para o dia selecionado.');
+                  return;
+                }
+
+                novoPonto.latitude = _localizacaoAtual?.latitude; // Adicionando latitude
+                novoPonto.longitude = _localizacaoAtual?.longitude; // Adicionando longitude
+
                     if (indice == null) {
                       novoPonto.id = 0;
                       await Provider.of<PontoProvider>(context, listen: false).adicionarPonto(novoPonto);
@@ -591,6 +604,7 @@ void _mostrarDetalhesPonto(Ponto ponto) {
                       novoPonto.id = Provider.of<PontoProvider>(context, listen: false).pontos[indice].id;
                       await Provider.of<PontoProvider>(context, listen: false).adicionarPonto(novoPonto);
                     }
+
                   Navigator.of(context).pop();
                   await _carregarPontos();
                 }
@@ -602,6 +616,11 @@ void _mostrarDetalhesPonto(Ponto ponto) {
       },
     );
   }
+Future<Configuracao> _carregarConfiguracao() async {
+  final configuracaoDao = ConfiguracaoDao();
+  final configuracao = await configuracaoDao.obterConfiguracao();
+  return configuracao ?? Configuracao(id: 1, horaInicio1: '08:00', horaFim1: '12:00', horaInicio2: '13:00', horaFim2: '17:00');
+}
 
   void _excluirPonto(int indice) async {
     if (indice >= 0 && indice < Provider.of<PontoProvider>(context, listen: false).pontos.length) {
